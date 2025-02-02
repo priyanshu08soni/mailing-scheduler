@@ -16,7 +16,6 @@ import axios from 'axios';
 
 // Schema for validating the form inputs
 export const formSchema = z.object({
-    mailerId: z.string(),
     listId: z.string().optional(),
     emailId: z.string().optional(),
     subject: z.string(),
@@ -24,7 +23,7 @@ export const formSchema = z.object({
     sendDate: z.string(),
 });
 
-const MailScheduleForm = ({ action, data = null, userId }: { action: string, data?: any, userId: string }) => {
+const MailSchedulePage = ({ action, data = null, userId }: { action: string, data?: any, userId: string }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
@@ -34,14 +33,12 @@ const MailScheduleForm = ({ action, data = null, userId }: { action: string, dat
     const [emails, setEmails] = useState<any[]>([]); // List of people
 
     const initialValues = data && action === 'Update' ? {
-        mailerId: data?.mailerId,
         listId: data?.listId,
         emailId: data?.emailId,
         subject: data?.subject,
         message: data?.message,
         sendDate: data?.sendDate,
     } : {
-        mailerId: "",
         listId: "",
         emailId: "",
         subject: "",
@@ -94,107 +91,97 @@ const MailScheduleForm = ({ action, data = null, userId }: { action: string, dat
     }
 
     return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                {/* Subject */}
-                <CustomField
-                    control={form.control}
-                    name='subject'
-                    formLabel='Subject'
-                    className='w-full'
-                    render={({ field }: any) => <Input {...field} className='input-field' />}
-                />
-                
-                {/* Message */}
-                <CustomField
-                    control={form.control}
-                    name='message'
-                    formLabel='Message'
-                    className='w-full'
-                    render={({ field }: any) => <Input {...field} className='input-field' />}
-                />
+        <div className="grid grid-cols-3 gap-4">
+            {/* First Part: Mailers (20%) */}
+            <div className="col-span-1 p-4">
+                <h2 className="text-xl font-bold mb-4">Select Mail Template</h2>
+                <div className="space-y-4">
+                    {mailers.map((mailer) => (
+                        <Button
+                            key={mailer.id}
+                            variant="outline"
+                            onClick={() => form.setValue('emailId', mailer.id)}
+                            className="w-full"
+                        >
+                            {mailer.name}
+                        </Button>
+                    ))}
+                </div>
+            </div>
 
-                {/* Mailer Template */}
-                <CustomField
-                    control={form.control}
-                    name='mailerId'
-                    formLabel='Mailer Template'
-                    className='w-full'
-                    render={({ field }: any) => (
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger className="select-field">
-                                <SelectValue placeholder="Select a Mailer Template" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {mailers.map((mailer) => (
-                                    <SelectItem key={mailer.id} value={mailer.id}>
-                                        {mailer.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
+            {/* Second Part: Email Form and Schedule (60%) */}
+            <div className="col-span-2 p-4">
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                        {/* Subject */}
+                        <CustomField
+                            control={form.control}
+                            name='subject'
+                            formLabel='Subject'
+                            className='w-full'
+                            render={({ field }: any) => <Input {...field} className='input-field' />}
+                        />
+                        
+                        {/* Message */}
+                        <CustomField
+                            control={form.control}
+                            name='message'
+                            formLabel='Message'
+                            className='w-full'
+                            render={({ field }: any) => <Input {...field} className='input-field' />}
+                        />
 
-                {/* Recipient List */}
-                <CustomField
-                    control={form.control}
-                    name='listId'
-                    formLabel='Recipient List'
-                    className='w-full'
-                    render={({ field }: any) => (
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger className="select-field">
-                                <SelectValue placeholder="Select a List" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {lists.map((list) => (
-                                    <SelectItem key={list.id} value={list.id}>
-                                        {list.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
+                        {/* Send Date */}
+                        <CustomField
+                            control={form.control}
+                            name='sendDate'
+                            formLabel='Send Date'
+                            className='w-full'
+                            render={({ field }: any) => <Input type="datetime-local" {...field} className='input-field' />}
+                        />
 
-                {/* Individual Email */}
-                <CustomField
-                    control={form.control}
-                    name='emailId'
-                    formLabel='Recipient (Individual)'
-                    className='w-full'
-                    render={({ field }: any) => (
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger className="select-field">
-                                <SelectValue placeholder="Select an Individual" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {emails.map((email) => (
-                                    <SelectItem key={email.id} value={email.id}>
-                                        {email.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
+                        <Button type="submit" className='submit-button capitalize' disabled={isSubmitting}>
+                            {isSubmitting ? 'Submitting...' : action === 'Add' ? 'Create Schedule' : 'Update Schedule'}
+                        </Button>
+                    </form>
+                </Form>
+            </div>
 
-                {/* Send Date */}
-                <CustomField
-                    control={form.control}
-                    name='sendDate'
-                    formLabel='Send Date'
-                    className='w-full'
-                    render={({ field }: any) => <Input type="datetime-local" {...field} className='input-field' />}
-                />
-
-                <Button type="submit" className='submit-button capitalize' disabled={isSubmitting}>
-                    {isSubmitting ? 'Submitting...' : action === 'Add' ? 'Create Schedule' : 'Update Schedule'}
-                </Button>
-            </form>
-        </Form>
+            {/* Third Part: People Lists (20%) */}
+            <div className="col-span-1 p-4">
+                <h2 className="text-xl font-bold mb-4">Select Recipients</h2>
+                <div className="space-y-4">
+                    {lists.map((list) => (
+                        <div key={list.id} className="space-y-2">
+                            <h3 className="text-lg font-semibold">{list.name}</h3>
+                            <Select
+                                onValueChange={(value) => form.setValue('listId', value)}
+                                value={form.watch('listId')}
+                            >
+                                <SelectTrigger className="select-field">
+                                    <SelectValue placeholder="Select a List" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {list.people.map((person : any) => (
+                                        <SelectItem key={person.id} value={person.id}>
+                                            {person.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Button
+                                variant="outline"
+                                onClick={() => form.setValue('emailId', list.people[0]?.id)}
+                                className="w-full"
+                            >
+                                Select First Person
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
     );
 };
 
-export default MailScheduleForm;
+export default MailSchedulePage;
