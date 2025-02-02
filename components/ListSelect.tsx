@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchLists } from "@/lib/api";
 
-export default function ListSelect({ register }: any) {
+const ListSelect = ({ register }: any) => {
   const { data: lists } = useQuery({ queryKey: ["lists"], queryFn: fetchLists });
 
   return (
@@ -15,3 +15,4 @@ export default function ListSelect({ register }: any) {
     </select>
   );
 }
+export default ListSelect

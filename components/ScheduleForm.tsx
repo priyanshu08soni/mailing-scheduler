@@ -6,13 +6,13 @@ import { createMailing } from "@/lib/api";
 import MailerSelect from "./MailerSelect";
 import ListSelect from "./ListSelect";
 
-const schema = z.object({
+export const schema = z.object({
   mailerId: z.string().nonempty("Select a mailer"),
   listId: z.string().nonempty("Select a list"),
   scheduleDate: z.string().nonempty("Pick a date and time"),
 });
 
-export default function ScheduleForm() {
+const ScheduleForm = () => {
   const { register, handleSubmit } = useForm({
     resolver: zodResolver(schema),
   });
@@ -42,3 +42,4 @@ export default function ScheduleForm() {
     </form>
   );
 }
+export default ScheduleForm
