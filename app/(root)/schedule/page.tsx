@@ -5,7 +5,7 @@ const Schedule = () => {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Schedule a Mailing</h1>
-      <ScheduleForm />
+      <ScheduleForm action={''} userId={''} />
     </div>
   )
 }
