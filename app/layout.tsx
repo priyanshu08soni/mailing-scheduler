@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { 
-  ClerkProvider
-} from "@clerk/nextjs";
+import {ClerkProvider} from "@clerk/nextjs";
 import React from "react";
 
 const IBMPlex = IBM_Plex_Sans({
