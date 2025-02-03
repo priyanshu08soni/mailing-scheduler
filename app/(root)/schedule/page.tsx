@@ -1,12 +1,14 @@
-import ScheduleForm from '@/components/ScheduleForm'
+import ScheduleForm from '@/components/shared/ScheduleForm'
 import React from 'react'
 
 const Schedule = () => {
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Schedule a Mailing</h1>
+    <>
+    <div className='p-4'>
+      <h1 className="text-2xl font-bold mb-4 text-center">Schedule a Mail</h1>
       <ScheduleForm action={''} userId={''} />
     </div>
+    </>
   )
 }
 
