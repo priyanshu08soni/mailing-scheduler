@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useTransition } from "react";
+import React, { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, FormProvider } from "react-hook-form";
 import { z } from "zod";
@@ -11,140 +11,142 @@ import { Input } from "@/components/ui/input";
 
 import { CustomField } from "./CustomField";
 import { useRouter } from "next/navigation";
-import EmailListSelector from "./Reciepients";
+import Recipients from "./Recipients";
 import MailTemplateSelector from "./MailTemplateSelector";
+import { getUserById } from "@/lib/actions/user.action";
+import { createSchedule } from "@/lib/actions/schedule.actions";
 
-// Schema for validating the form inputs
+// Schema for form validation
 export const formSchema = z.object({
-  listId: z.string().optional(),
+  selectedLists: z.array(z.string()), // Expect an array of string IDs
   emailId: z.string().optional(),
   subject: z.string(),
   message: z.string(),
   sendDate: z.string(),
 });
 
-const MailSchedulePage = ({
-  action,
-  data = null,
-}: {
-  action: string;
-  data?: any;
-  userId: string;
-}) => {
+const MailSchedulePage = ({ userId }: { userId: string }) => {
+  const [user, setUser] = useState<{ email?: string } | null>(null);
+  const [selectedLists, setSelectedLists] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isLoadingEmail, setIsLoadingEmail] = useState(false); // New state for reloading email
   const router = useRouter();
-
-  const initialValues =
-    data && action === "Update"
-      ? {
-          listId: data?.listId,
-          emailId: data?.emailId,
-          subject: data?.subject,
-          message: data?.message,
-          sendDate: data?.sendDate,
-        }
-      : {
-          listId: "",
-          emailId: "",
-          subject: "",
-          message: "",
-          sendDate: "",
-        };
 
   const formMethods = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialValues,
+    defaultValues: {
+      selectedLists: [], // Initialize as empty array
+      emailId: "",
+      subject: "",
+      message: "",
+      sendDate: "",
+    },
   });
 
-  // Handle form submission
+  // Function to fetch user email
+  const fetchUserEmail = async () => {
+    setIsLoadingEmail(true);
+    try {
+      const user = await getUserById(userId);
+      setUser(user);
+      if (user?.email) {
+        formMethods.setValue("emailId", user.email);
+      }
+    } catch (error) {
+      console.error("Failed to fetch email:", error);
+    }
+    setIsLoadingEmail(false);
+  };
+
+  useEffect(() => {
+    fetchUserEmail(); // Fetch email on mount
+  }, [userId]);
+
+  useEffect(() => {
+    formMethods.setValue("selectedLists", selectedLists);
+  }, [selectedLists, formMethods]);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-
     try {
-      if (action === "Add") {
-        console.log("Adding mail schedule", values);
-        // API call to add mail schedule
-      } else if (action === "Update") {
-        console.log("Updating mail schedule", values);
-        // API call to update mail schedule
-      }
-      router.push("/mails"); // Redirect after submission
+      await createSchedule(
+        values.emailId || "",
+        values.subject,
+        values.message,
+        values.sendDate,
+        values.selectedLists
+      );
+      router.push("/mails");
     } catch (error) {
-      console.error(error);
+      console.error("Failed to create schedule:", error);
     }
-
     setIsSubmitting(false);
   }
 
   return (
     <FormProvider {...formMethods}>
       <div className="grid grid-cols-3 gap-4">
-        {/* Third Part: People Lists (20%) */}
+        {/* Recipients (Lists) */}
         <div className="xl:col-span-1 md:col-span-3 sm:col-span-3 p-4 bg-white rounded-lg">
-          <EmailListSelector />
+          <Recipients
+            onSelectLists={(selectedMap: { [key: string]: boolean }) => {
+              const selectedIds = Object.keys(selectedMap).filter((id) => selectedMap[id]);
+              setSelectedLists(selectedIds);
+            }}
+          />
         </div>
 
-        {/* Second Part: Email Form and Schedule (60%) */}
+        {/* Email Form */}
         <div className="xl:col-span-1 md:col-span-3 sm:col-span-3 p-4">
           <Form {...formMethods}>
-            <form
-              onSubmit={formMethods.handleSubmit(onSubmit)}
-              className="space-y-8"
-            >
-              {/* Subject */}
+            <form onSubmit={formMethods.handleSubmit(onSubmit)} className="space-y-8">
+              {/* Email Field with Reload Button */}
+              <div className="flex items-center gap-2">
+                <CustomField
+                  control={formMethods.control}
+                  name="emailId"
+                  formLabel="Your Email"
+                  render={({ field }) => <Input {...field} className="input-field flex-1" disabled />}
+                />
+                <Button
+                  type="button"
+                  onClick={fetchUserEmail}
+                  disabled={isLoadingEmail}
+                  className="px-4 py-2 border border-gray-300 rounded-md bg-gray-900 hover:bg-gray-100 text-sm hover:text-black"
+                >
+                  {isLoadingEmail ? "Loading..." : "Reload Email"}
+                </Button>
+              </div>
+
               <CustomField
                 control={formMethods.control}
                 name="subject"
                 formLabel="Subject"
-                className="w-full"
-                render={({ field }: any) => (
-                  <Input {...field} className="input-field" />
-                )}
+                render={({ field }) => <Input {...field} className="input-field" />}
               />
 
-              {/* Message */}
               <CustomField
                 control={formMethods.control}
                 name="message"
                 formLabel="Message"
-                className="w-full"
-                render={({ field }: any) => (
-                  <Input {...field} className="input-field" />
-                )}
+                render={({ field }) => <Input {...field} className="input-field" />}
               />
 
-              {/* Send Date */}
               <CustomField
                 control={formMethods.control}
                 name="sendDate"
                 formLabel="Send Date"
-                className="w-full"
-                render={({ field }: any) => (
-                  <Input
-                    type="datetime-local"
-                    {...field}
-                    className="input-field"
-                  />
-                )}
+                render={({ field }) => <Input type="datetime-local" {...field} className="input-field" />}
               />
 
-              <Button
-                type="submit"
-                className="submit-button capitalize"
-                disabled={isSubmitting}
-              >
-                {isSubmitting
-                  ? "Submitting..."
-                  : action === "Add"
-                  ? "Create Schedule"
-                  : "Update Schedule"}
+              <Button type="submit" className="submit-button capitalize" disabled={isSubmitting}>
+                {isSubmitting ? "Submitting..." : "Create Schedule"}
               </Button>
             </form>
           </Form>
         </div>
 
-        {/* First Part: Mailers (20%) */}
+        {/* Mail Templates */}
         <div className="xl:col-span-1 md:col-span-3 sm:col-span-3 shadow-md p-4">
           <MailTemplateSelector />
         </div>
